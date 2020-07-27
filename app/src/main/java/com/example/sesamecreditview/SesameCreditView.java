@@ -1,5 +1,6 @@
 package com.example.sesamecreditview;
 
+import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.BlurMaskFilter;
@@ -77,6 +78,7 @@ public class SesameCreditView extends View {
         creditStr = showCreditLevel();
 
         startIndicatorAnim();
+        runWithAnimation(score);
     }
 
     @Override
@@ -241,6 +243,22 @@ public class SesameCreditView extends View {
             stopAngle = startAngle + perLevelAngle*4 + (float)(score-700)/(950-700)*perLevelAngle;
         }
         return creditLevelStr;
+    }
+
+    public void runWithAnimation(int number){
+        ObjectAnimator objectAnimator = ObjectAnimator.ofInt(this, "score", 0, number);
+        objectAnimator.setDuration(ANIM_DURATION);
+        objectAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
+
+        objectAnimator.start();
+    }
+
+    public int getScore() {
+        return score;
+    }
+
+    public void setScore(int score) {
+        this.score = score;
     }
 
     private int dp2px(Context context, float dp) {
