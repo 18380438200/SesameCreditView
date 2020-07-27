@@ -7,8 +7,8 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.SweepGradient;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import androidx.annotation.Nullable;
@@ -31,16 +31,19 @@ public class SesameCreditView extends View {
     private int innerRingWidth;
     /** 表盘圆环总度数 */
     private final int totalAngle = 210;
-    /** 圆环透明度 0-255 */
-    private final int ringAlpha = 80;
     /** 圆弧上总共刻度数 */
     private final int totalDegreeScale = 30;
     /** 各分数刻度文本 */
     private String[] scores = new String[] {"350", "较差", "550", "中等", "600", "良好", "650", "优秀", "700", "极好", "950"};
     /** 信用分数 */
-    private int score = 700;
+    private int score = 715;
     /** 当前扫过的数值角度 */
     private float curProgressAngle;
+    /** 动画时长 */
+    private final long ANIM_DURATION = 2000;
+    /** 指示器结束时的角度 */
+    private float stopAngle;
+    private String creditStr;
 
     public SesameCreditView(Context context) {
         super(context);
@@ -71,7 +74,9 @@ public class SesameCreditView extends View {
         dotPaint.setAntiAlias(true);
         dotPaint.setMaskFilter(new BlurMaskFilter(outerRingWidth, BlurMaskFilter.Blur.SOLID));  //设置指示器发光
 
-        startAnim();
+        creditStr = showCreditLevel();
+
+        startIndicatorAnim();
     }
 
     @Override
@@ -82,8 +87,6 @@ public class SesameCreditView extends View {
         drawDegreeScale(canvas);
         drawCenterText(canvas);
         drawDot(canvas);
-
-
     }
 
     /**
@@ -91,7 +94,7 @@ public class SesameCreditView extends View {
      * @param canvas
      */
     private void drawRing (Canvas canvas) {
-        ringPaint.setAlpha(ringAlpha);
+        ringPaint.setAlpha(80);
         int startAngle = -90-totalAngle/2;  //圆环起始角度，12点钟位置为-90°
 
         //绘制外圆环
@@ -167,7 +170,6 @@ public class SesameCreditView extends View {
         scoreTextPaint.setAlpha(200);
         scoreTextPaint.setTextSize(75);
         Rect creditRect = new Rect();
-        String creditStr = "信用极好";
         scoreTextPaint.getTextBounds(creditStr, 0, creditStr.length(), creditRect);
         canvas.drawText(creditStr, getWidth()/2-creditRect.width()/2, getHeight()/2+scoreRect.height()/2+20, scoreTextPaint);
 
@@ -178,6 +180,8 @@ public class SesameCreditView extends View {
         canvas.drawText("评估时间:2020.07.27", getWidth()/2-timeStrWidth/2, getHeight()/2+scoreRect.height()+10, scoreTextPaint);
     }
 
+    private int[] indicatorColor = {0xffffffff,0x00ffffff,0x99ffffff,0xffffffff};
+
     /**
      * 绘制进度动画小圆点
      */
@@ -185,25 +189,58 @@ public class SesameCreditView extends View {
         scoreTextPaint.setAlpha(230);
         float x = (float) (getWidth()/2 + (getWidth()/2-outerRingWidth)*Math.sin(Math.toRadians(curProgressAngle)));
         float y = (float) (getHeight()/2 - (getWidth()/2-outerRingWidth)*Math.cos(Math.toRadians(curProgressAngle)));
+        dotPaint.setShader(new SweepGradient(getWidth()/2, getHeight()/2, indicatorColor, null));
         canvas.drawCircle(x, y, outerRingWidth, dotPaint);
     }
 
     /**
      * 启动指示器加载动画
      */
-    private void startAnim() {
-        ValueAnimator valueAnimator = ValueAnimator.ofFloat(-105, 73);
-        valueAnimator.setDuration(2000);
+    private void startIndicatorAnim() {
+        ValueAnimator valueAnimator = ValueAnimator.ofFloat(-105, stopAngle);
+        valueAnimator.setDuration(ANIM_DURATION);
         valueAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
         valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 curProgressAngle = (float) animation.getAnimatedValue();
-                Log.i("minfo", "角度 " + curProgressAngle);
+
                 postInvalidate();  //数值改变实时更新绘制
             }
         });
         valueAnimator.start();
+    }
+
+
+
+    /**
+     * 设置信用水平，每一刻小刻度是7°
+     * 在当前大刻度范围的结束角度，为之前刻度角度加上在该区间按比例得出的角度
+     */
+    private String showCreditLevel() {
+        int startAngle = -105;
+        int perLevelAngle = totalAngle/5;  //有5段大刻度
+        String creditLevelStr = null;
+        if (score < 350) {
+            creditLevelStr = "信用较差";
+            stopAngle = startAngle;
+        } else if (score >= 350 && score < 550) {
+            creditLevelStr = "信用较差";
+            stopAngle = startAngle + (float)(score-350)/(550-350)*perLevelAngle;
+        } else if (score >= 550 && score < 600) {
+            creditLevelStr = "信用中等";
+            stopAngle = startAngle + perLevelAngle + (float)(score-550)/(600-550)*perLevelAngle;
+        } else if (score >= 600 && score < 650) {
+            creditLevelStr = "信用良好";
+            stopAngle = startAngle + perLevelAngle*2 + (float)(score-600)/(650-600)*perLevelAngle;
+        } else if (score >= 650 && score < 700) {
+            creditLevelStr = "信用优秀";
+            stopAngle = startAngle + perLevelAngle*3 + (float)(score-650)/(700-650)*perLevelAngle;
+        } else if (score >= 700 && score < 950) {
+            creditLevelStr = "信用极好";
+            stopAngle = startAngle + perLevelAngle*4 + (float)(score-700)/(950-700)*perLevelAngle;
+        }
+        return creditLevelStr;
     }
 
     private int dp2px(Context context, float dp) {
