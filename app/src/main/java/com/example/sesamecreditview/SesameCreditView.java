@@ -44,6 +44,7 @@ public class SesameCreditView extends View {
     private final long ANIM_DURATION = 2000;
     /** 指示器结束时的角度 */
     private float stopAngle;
+    /** 信用评级文字 */
     private String creditStr;
 
     public SesameCreditView(Context context) {
@@ -182,8 +183,6 @@ public class SesameCreditView extends View {
         canvas.drawText("评估时间:2020.07.27", getWidth()/2-timeStrWidth/2, getHeight()/2+scoreRect.height()+10, scoreTextPaint);
     }
 
-    private int[] indicatorColor = {0xffffffff,0x00ffffff,0x99ffffff,0xffffffff};
-
     /**
      * 绘制进度动画小圆点
      */
@@ -191,7 +190,6 @@ public class SesameCreditView extends View {
         scoreTextPaint.setAlpha(230);
         float x = (float) (getWidth()/2 + (getWidth()/2-outerRingWidth)*Math.sin(Math.toRadians(curProgressAngle)));
         float y = (float) (getHeight()/2 - (getWidth()/2-outerRingWidth)*Math.cos(Math.toRadians(curProgressAngle)));
-        dotPaint.setShader(new SweepGradient(getWidth()/2, getHeight()/2, indicatorColor, null));
         canvas.drawCircle(x, y, outerRingWidth, dotPaint);
     }
 
@@ -212,8 +210,6 @@ public class SesameCreditView extends View {
         });
         valueAnimator.start();
     }
-
-
 
     /**
      * 设置信用水平，每一刻小刻度是7°
